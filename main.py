@@ -274,12 +274,32 @@ elif menu == "📊 Lịch sử & Xuất Excel":
         st.info("Chưa có dữ liệu điểm danh nào được lưu.")
     else:
         st.dataframe(df_ls, use_container_width=True, hide_index=True)
-        csv_file = df_ls.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
+
+        # Chuyển đổi DataFrame thành file Excel (.xlsx) trong bộ nhớ đệm
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df_ls.to_excel(writer, index=False, sheet_name='Lich_Su_Diem_Danh')
+
+            # --- ĐOẠN CODE TỰ ĐỘNG CHỈNH CỘT VỪA KHÍT NỘI DUNG ---
+            workbook = writer.book
+            worksheet = writer.sheets['Lich_Su_Diem_Danh']
+            for col in worksheet.columns:
+                max_len = 0
+                col_letter = col[0].column_letter  # Lấy tên cột (A, B, C,...)
+                for cell in col:
+                    if cell.value is not None:
+                        max_len = max(max_len, len(str(cell.value)))
+                # Đặt chiều rộng bằng độ dài ký tự lớn nhất cộng thêm khoảng trống
+                worksheet.column_dimensions[col_letter].width = max(max_len + 4, 12)
+        # -----------------------------------------------------
+
+        excel_data = output.getvalue()
+
         st.download_button(
-            label="📥 Tải file báo cáo Excel (.csv)",
-            data=csv_file,
-            file_name=f"Diem_Danh_Vovinam_AnLac3_{datetime.date.today()}.csv",
-            mime="text/csv",
+            label="📥 Tải file báo cáo Excel (.xlsx)",
+            data=excel_data,
+            file_name=f"Diem_Danh_Vovinam_AnLac3_{datetime.date.today()}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             type="primary"
         )
 
